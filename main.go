@@ -10,12 +10,12 @@ import (
 
 // Названия типов данных
 const (
-	TypeArray  = "ARRAY"
-	TypeStack  = "STACK"
-	TypeQueue  = "QUEUE"
-	TypeTree   = "TREE"
-	TypeFList  = "FLIST"
-	TypeDList  = "DLIST"
+	TypeArray   = "ARRAY"
+	TypeStack   = "STACK"
+	TypeQueue   = "QUEUE"
+	TypeTree    = "TREE"
+	TypeFList   = "FLIST"
+	TypeDList   = "DLIST"
 	TypeUnknown = "UNKNOWN"
 )
 
@@ -83,7 +83,7 @@ func ParseQuery(str string) Query {
 func (db *DB) Load() bool {
 	file, err := os.Open(db.filename)
 	if err != nil {
-		// Если файла нет, это нормально (создадим новый)
+		// Если файла нет, это нормально (создадим новый при сохранении)
 		return true
 	}
 	defer file.Close()
@@ -287,23 +287,20 @@ func FromDList(list *LList, entry *Entry) {
 
 // --- Обработчик команд СУБД ---
 
-type Command struct {
-	argc    int
-	handler func(entry *Entry, query Query) bool
-}
-
 func ExecuteCommand(entry *Entry, query Query) bool {
 	cmdName := query.command
 
 	switch cmdName {
 	// ====== ARRAY ======
 	case "MPUSH":
+		if len(query.args) < 1 { return false }
 		arr := ToArray(entry.values)
 		MPUSH(&arr, query.args[0])
 		FromArray(&arr, entry)
 		return true
 
 	case "MPUSH_INDEX":
+		if len(query.args) < 2 { return false }
 		idx, err := strconv.Atoi(query.args[1])
 		if err != nil {
 			fmt.Println("Не число:", query.args[1])
@@ -315,6 +312,7 @@ func ExecuteCommand(entry *Entry, query Query) bool {
 		return true
 
 	case "MDEL":
+		if len(query.args) < 1 { return false }
 		idx, err := strconv.Atoi(query.args[0])
 		if err != nil {
 			fmt.Println("Не число:", query.args[0])
@@ -326,6 +324,7 @@ func ExecuteCommand(entry *Entry, query Query) bool {
 		return true
 
 	case "MREPLACE":
+		if len(query.args) < 2 { return false }
 		idx, err := strconv.Atoi(query.args[1])
 		if err != nil {
 			fmt.Println("Не число:", query.args[1])
@@ -337,6 +336,7 @@ func ExecuteCommand(entry *Entry, query Query) bool {
 		return true
 
 	case "MRECEIVE":
+		if len(query.args) < 1 { return false }
 		idx, err := strconv.Atoi(query.args[0])
 		if err != nil {
 			fmt.Println("Не число:", query.args[0])
@@ -361,6 +361,7 @@ func ExecuteCommand(entry *Entry, query Query) bool {
 
 	// ====== STACK ======
 	case "SPUSH":
+		if len(query.args) < 1 { return false }
 		stack := ToStack(entry.values)
 		SPUSH(&stack, query.args[0])
 		fmt.Println(query.args[0])
@@ -387,6 +388,7 @@ func ExecuteCommand(entry *Entry, query Query) bool {
 
 	// ====== QUEUE ======
 	case "QPUSH":
+		if len(query.args) < 1 { return false }
 		queue := ToQueue(entry.values)
 		QPUSH(&queue, query.args[0])
 		fmt.Println(query.args[0])
@@ -413,6 +415,7 @@ func ExecuteCommand(entry *Entry, query Query) bool {
 
 	// ====== TREE ======
 	case "TINSERT":
+		if len(query.args) < 1 { return false }
 		num, err := strconv.Atoi(query.args[0])
 		if err != nil {
 			fmt.Println("Не число:", query.args[0])
@@ -428,6 +431,7 @@ func ExecuteCommand(entry *Entry, query Query) bool {
 		return true
 
 	case "TDEL":
+		if len(query.args) < 1 { return false }
 		num, err := strconv.Atoi(query.args[0])
 		if err != nil {
 			fmt.Println("Не число:", query.args[0])
@@ -439,6 +443,7 @@ func ExecuteCommand(entry *Entry, query Query) bool {
 		return true
 
 	case "TFIND":
+		if len(query.args) < 1 { return false }
 		num, err := strconv.Atoi(query.args[0])
 		if err != nil {
 			fmt.Println("Не число:", query.args[0])
@@ -485,42 +490,45 @@ func ExecuteCommand(entry *Entry, query Query) bool {
 		tree := ToTree(entry.values)
 		fmt.Printf("Дерево полное: %t\n", TIS_COMPLETE(tree))
 		if tree.Size > 0 {
-			TGET_POSTORDER(tree.Root)
-		} else {
-			fmt.Print("Нет значений")
-		}
-		fmt.Println()
-		FromTree(&tree, entry)
-		return true
-
-	case "TGET_LEVELORDER":
-		tree := ToTree(entry.values)
-		fmt.Printf("Дерево полное: %t\n", TIS_COMPLETE(tree))
-		if tree.Size > 0 {
-			TGET_LEVELORDER(tree)
-		} else {
-			fmt.Print("Нет значений")
-		}
-		fmt.Println()
-    FromTree(&tree, entry)
+TGET_POSTORDER(tree.Root)
+} else {
+fmt.Print("Нет значений")
+}
+fmt.Println()
+FromTree(&tree, entry)
+return true
+case "TGET_LEVELORDER":
+tree := ToTree(entry.values)
+fmt.Printf("Дерево полное: %t\n", TIS_COMPLETE(tree))
+if tree.Size > 0 {
+TGET_LEVELORDER(tree)
+} else {
+fmt.Print("Нет значений")
+}
+fmt.Println()
+FromTree(&tree, entry)
 return true
 // ====== FLIST ======
 case "FPUSH_HEAD":
+if len(query.args) < 1 { return false }
 list := ToFList(entry.values)
 FPUSH_HEAD(&list, query.args[0])
 FromFList(&list, entry)
 return true
 case "FPUSH_TAIL":
+if len(query.args) < 1 { return false }
 list := ToFList(entry.values)
 FPUSH_TAIL(&list, query.args[0])
 FromFList(&list, entry)
 return true
 case "FPUSH_BEFORE":
+if len(query.args) < 2 { return false }
 list := ToFList(entry.values)
 FPUSH_BEFORE(&list, query.args[0], query.args[1])
 FromFList(&list, entry)
 return true
 case "FPUSH_AFTER":
+if len(query.args) < 2 { return false }
 list := ToFList(entry.values)
 FPUSH_AFTER(&list, query.args[0], query.args[1])
 FromFList(&list, entry)
@@ -536,21 +544,25 @@ FDEL_TAIL(&list)
 FromFList(&list, entry)
 return true
 case "FDEL_BEFORE":
+if len(query.args) < 1 { return false }
 list := ToFList(entry.values)
 FDEL_BEFORE(&list, query.args[0])
 FromFList(&list, entry)
 return true
 case "FDEL_AFTER":
+if len(query.args) < 1 { return false }
 list := ToFList(entry.values)
 FDEL_AFTER(&list, query.args[0])
 FromFList(&list, entry)
 return true
 case "FDEL_VALUE":
+if len(query.args) < 1 { return false }
 list := ToFList(entry.values)
 FDEL_VALUE(&list, query.args[0])
 FromFList(&list, entry)
 return true
 case "FFIND":
+if len(query.args) < 1 { return false }
 list := ToFList(entry.values)
 idx := FFIND(list, query.args[0])
 if idx < 0 {
@@ -577,21 +589,25 @@ FromFList(&list, entry)
 return true
 // ====== DLIST ======
 case "LPUSH_HEAD":
+if len(query.args) < 1 { return false }
 list := ToDList(entry.values)
 LPUSH_HEAD(&list, query.args[0])
 FromDList(&list, entry)
 return true
 case "LPUSH_TAIL":
+if len(query.args) < 1 { return false }
 list := ToDList(entry.values)
 LPUSH_TAIL(&list, query.args[0])
 FromDList(&list, entry)
 return true
 case "LPUSH_BEFORE":
+if len(query.args) < 2 { return false }
 list := ToDList(entry.values)
 LPUSH_BEFORE(&list, query.args[0], query.args[1])
 FromDList(&list, entry)
 return true
 case "LPUSH_AFTER":
+if len(query.args) < 2 { return false }
 list := ToDList(entry.values)
 LPUSH_AFTER(&list, query.args[0], query.args[1])
 FromDList(&list, entry)
@@ -607,21 +623,25 @@ LDEL_TAIL(&list)
 FromDList(&list, entry)
 return true
 case "LDEL_BEFORE":
+if len(query.args) < 1 { return false }
 list := ToDList(entry.values)
 LDEL_BEFORE(&list, query.args[0])
 FromDList(&list, entry)
 return true
 case "LDEL_AFTER":
+if len(query.args) < 1 { return false }
 list := ToDList(entry.values)
 LDEL_AFTER(&list, query.args[0])
 FromDList(&list, entry)
 return true
 case "LDEL_VALUE":
+if len(query.args) < 1 { return false }
 list := ToDList(entry.values)
 LDEL_VALUE(&list, query.args[0])
 FromDList(&list, entry)
 return true
 case "LFIND":
+if len(query.args) < 1 { return false }
 list := ToDList(entry.values)
 idx := LFIND(list, query.args[0])
 if idx < 0 {
@@ -673,7 +693,7 @@ if !ExecuteCommand(entry, query) {
 os.Exit(1)
 }
 if !db.Save() {
-fmt.Println("Ошибка сохранения")
+fmt.Println("Ошибка чтения")
 os.Exit(1)
 }
 }
